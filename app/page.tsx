@@ -1,69 +1,213 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import {
+  Trash2,
+  Plus,
+  CheckCircle,
+  Circle,
+  Sun,
+  Moon,
+  StickyNote,
+  ListChecks,
+  ClipboardList,
+  NotebookPen,
+  CheckSquare,
+  ListTodo,
+  type LucideIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface Todo {
+  id: number;
+  text: string;
+  completed: boolean;
+}
+
+const DECOR_ICONS: LucideIcon[] = [
+  StickyNote,
+  ListChecks,
+  ClipboardList,
+  NotebookPen,
+  CheckSquare,
+  ListTodo,
+];
+
+type DecorItem = {
+  Icon: LucideIcon;
+  top: number;
+  left: number;
+  size: number;
+  rotate: number;
+  duration: number;
+  delay: number;
+};
+
+function BackgroundDecor() {
+  // Generated after mount (not via useMemo) so the random layout is never
+  // computed during SSR, which would mismatch the client's own random values.
+  const [items, setItems] = useState<DecorItem[]>([]);
+
+  useEffect(() => {
+    setItems(
+      Array.from({ length: 10 }, (_, i) => ({
+        Icon: DECOR_ICONS[i % DECOR_ICONS.length],
+        top: Math.random() * 90 + 2,
+        left: Math.random() * 92 + 2,
+        size: Math.random() * 36 + 36,
+        rotate: Math.random() * 40 - 20,
+        duration: Math.random() * 4 + 5,
+        delay: -Math.random() * 6,
+      }))
+    );
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+      {items.map(({ Icon, top, left, size, rotate, duration, delay }, i) => (
+        <Icon
+          key={i}
+          className="float-icon absolute text-slate-400/20 dark:text-slate-500/15"
+          style={{
+            top: `${top}%`,
+            left: `${left}%`,
+            width: size,
+            height: size,
+            transform: `rotate(${rotate}deg)`,
+            animationDuration: `${duration}s`,
+            animationDelay: `${delay}s`,
+          }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+      ))}
+    </div>
+  );
+}
+
+export default function TodoApp() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [input, setInput] = useState("");
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+  }, [darkMode]);
+
+  // Add a new todo
+  const addTodo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const newTodo: Todo = {
+      id: Date.now(),
+      text: input.trim(),
+      completed: false,
+    };
+
+    setTodos([...todos, newTodo]);
+    setInput("");
+  };
+
+  // Toggle completed status
+  const toggleTodo = (id: number) => {
+    setTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
+    );
+  };
+
+  // Delete a todo
+  const deleteTodo = (id: number) => {
+    setTodos(todos.filter((todo) => todo.id !== id));
+  };
+
+  return (
+    <div className="relative isolate min-h-screen overflow-hidden bg-background flex items-center justify-center p-4 text-foreground transition-colors duration-500">
+      <BackgroundDecor />
+
+      <Button
+        onClick={() => setDarkMode((v) => !v)}
+        aria-label="Toggle dark mode"
+        variant="outline"
+        size="icon"
+        className="fixed top-4 right-4 rounded-full"
+      >
+        {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      </Button>
+
+      <div className="w-full max-w-md bg-card text-card-foreground rounded-xl shadow-md border border-border p-6">
+        <h1 className="text-2xl font-bold text-center mb-6">My To-Do List</h1>
+
+        {/* Input Form */}
+        <form onSubmit={addTodo} className="flex gap-2 mb-6">
+          <input
+            type="text"
+            placeholder="Add a new task..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="flex-1 px-4 py-2 border border-input bg-background rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:border-ring text-sm"
+          />
+          <Button type="submit" size="icon-lg" aria-label="Add task">
+            <Plus className="size-5" />
+          </Button>
+        </form>
+
+        {/* Task List */}
+        {todos.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-4">
+            No tasks yet. Add one above!
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        ) : (
+          <ul className="space-y-2">
+            {todos.map((todo) => (
+              <li
+                key={todo.id}
+                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border group transition-all"
+              >
+                <Button
+                  onClick={() => toggleTodo(todo.id)}
+                  variant="ghost"
+                  className="flex-1 h-auto justify-start gap-3 px-2 py-1.5 font-normal"
+                >
+                  {todo.completed ? (
+                    <CheckCircle className="size-5 text-emerald-500 shrink-0" />
+                  ) : (
+                    <Circle className="size-5 text-muted-foreground/50 shrink-0" />
+                  )}
+                  <span
+                    className={`text-sm ${todo.completed
+                        ? "line-through text-muted-foreground"
+                        : "text-foreground"
+                      }`}
+                  >
+                    {todo.text}
+                  </span>
+                </Button>
+
+                <Button
+                  onClick={() => deleteTodo(todo.id)}
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  aria-label="Delete task"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Counter Footer */}
+        {todos.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-border flex justify-between text-xs text-muted-foreground font-medium">
+            <span>Total: {todos.length}</span>
+            <span>
+              Completed: {todos.filter((t) => t.completed).length}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
